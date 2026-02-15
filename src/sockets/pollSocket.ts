@@ -41,7 +41,7 @@ export const setupSocketHandlers = (io: Server) => {
 
                 if (existingVoteIp) {
                     console.log(`[SOCKET] Duplicate vote attempt by IP: ${ip}`);
-                    socket.emit('error', { message: 'You have already voted from this IP address.' });
+                    socket.emit('error', { message: 'Already voted' });
                     return;
                 }
 
