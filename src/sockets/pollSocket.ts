@@ -8,8 +8,9 @@ export const setupSocketHandlers = (io: Server) => {
 
         // Join a specific poll room
         socket.on('join_poll', (pollId: string) => {
+            const ip = socket.handshake.address;
             socket.join(pollId);
-            console.log(`Socket ${socket.id} joined poll ${pollId}`);
+            console.log(`Socket ${socket.id} (IP: ${ip}) joined poll ${pollId}`);
         });
 
         // Handle incoming vote
@@ -36,7 +37,7 @@ export const setupSocketHandlers = (io: Server) => {
 
                 // Check if already voted by IP
                 const existingVoteIp = await Vote.findOne({ pollId, ipAddress: ip });
-                console.log("checking ip ", existingVoteIp)
+                console.log(`checking ip ${ip}, found existing vote: `, existingVoteIp);
 
                 if (existingVoteIp) {
                     console.log(`[SOCKET] Duplicate vote attempt by IP: ${ip}`);
