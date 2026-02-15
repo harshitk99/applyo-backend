@@ -16,6 +16,6 @@ const VoteSchema: Schema = new Schema({
 
 // Compound indexes to ensure one vote per Email per Poll AND one vote per IP per Poll
 VoteSchema.index({ pollId: 1, email: 1 }, { unique: true });
-VoteSchema.index({ pollId: 1, ipAddress: 1 }, { unique: true });
+VoteSchema.index({ pollId: 1, ipAddress: 1 }); // Index for performance, but allow multiple votes per IP (e.g. shared wifi)
 
 export default mongoose.model<IVote>('Vote', VoteSchema);

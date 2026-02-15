@@ -35,15 +35,8 @@ export const setupSocketHandlers = (io: Server) => {
                     return;
                 }
 
-                // Check if already voted by IP
-                const existingVoteIp = await Vote.findOne({ pollId, ipAddress: ip });
-                console.log(`checking ip ${ip}, found existing vote: `, existingVoteIp);
-
-                if (existingVoteIp) {
-                    console.log(`[SOCKET] Duplicate vote attempt by IP: ${ip}`);
-                    socket.emit('error', { message: 'Already voted' });
-                    return;
-                }
+                // IP Check removed to allow multiple users on same network (e.g. WiFi) to vote.
+                // We rely on Email uniqueness for vote limiting.
 
                 // Update Poll
                 const poll = await Poll.findById(pollId);
