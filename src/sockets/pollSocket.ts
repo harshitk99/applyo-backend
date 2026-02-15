@@ -13,14 +13,26 @@ export const setupSocketHandlers = (io: Server) => {
         });
 
         // Handle incoming vote
-        socket.on('vote', async ({ pollId, optionId }: { pollId: string; optionId: string }) => {
+        socket.on('vote', async ({ pollId, optionId, email }: { pollId: string; optionId: string; email: string }) => {
             try {
+                if (!email) {
+                    socket.emit('error', { message: 'Email is required to vote.' });
+                    return;
+                }
+
                 const ip = socket.handshake.address; // Simple IP check. In prod, check x-forwarded-for if behind proxy.
 
-                // Check if already voted
-                const existingVote = await Vote.findOne({ pollId, ipAddress: ip });
-                if (existingVote) {
-                    socket.emit('error', { message: 'You have already voted in this poll.' });
+                // Check if already voted by Email
+                const existingVoteEmail = await Vote.findOne({ pollId, email });
+                if (existingVoteEmail) {
+                    socket.emit('error', { message: 'You have already voted with this email.' });
+                    return;
+                }
+
+                // Check if already voted by IP
+                const existingVoteIp = await Vote.findOne({ pollId, ipAddress: ip });
+                if (existingVoteIp) {
+                    socket.emit('error', { message: 'You have already voted from this IP address.' });
                     return;
                 }
 
@@ -41,7 +53,7 @@ export const setupSocketHandlers = (io: Server) => {
                 await poll.save();
 
                 // Record Vote
-                await Vote.create({ pollId, ipAddress: ip });
+                await Vote.create({ pollId, ipAddress: ip, email });
 
                 // Broadcast update to room
                 io.to(pollId).emit('update_poll', poll);
