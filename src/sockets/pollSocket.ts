@@ -14,37 +14,49 @@ export const setupSocketHandlers = (io: Server) => {
 
         // Handle incoming vote
         socket.on('vote', async ({ pollId, optionId, email }: { pollId: string; optionId: string; email: string }) => {
+            console.log(`[SOCKET] Vote received for Poll: ${pollId}, Option: ${optionId}, Email: ${email}`);
             try {
                 if (!email) {
+                    console.log('[SOCKET] Vote failed: Email is missing');
                     socket.emit('error', { message: 'Email is required to vote.' });
                     return;
                 }
 
                 const ip = socket.handshake.address; // Simple IP check. In prod, check x-forwarded-for if behind proxy.
-
+                console.log(`[SOCKET] User IP: ${ip}`);
+                console.log(`this is socket-' ${socket}`)
                 // Check if already voted by Email
                 const existingVoteEmail = await Vote.findOne({ pollId, email });
+                console.log("checking email ", existingVoteEmail)
                 if (existingVoteEmail) {
+                    console.log(`[SOCKET] Duplicate vote attempt by Email: ${email}`);
                     socket.emit('error', { message: 'You have already voted with this email.' });
                     return;
                 }
 
                 // Check if already voted by IP
                 const existingVoteIp = await Vote.findOne({ pollId, ipAddress: ip });
+                console.log("checking ip ", existingVoteIp)
+
                 if (existingVoteIp) {
+                    console.log(`[SOCKET] Duplicate vote attempt by IP: ${ip}`);
                     socket.emit('error', { message: 'You have already voted from this IP address.' });
                     return;
                 }
 
                 // Update Poll
                 const poll = await Poll.findById(pollId);
+                console.log("poll - ", poll)
                 if (!poll) {
+                    console.error('[SOCKET] Vote failed: Poll not found');
                     socket.emit('error', { message: 'Poll not found.' });
                     return;
                 }
 
                 const option = poll.options.find(opt => (opt as any)._id.toString() === optionId);
+                console.log("option - ", option)
                 if (!option) {
+                    console.error('[SOCKET] Vote failed: Option not found');
                     socket.emit('error', { message: 'Option not found.' });
                     return;
                 }
@@ -54,12 +66,13 @@ export const setupSocketHandlers = (io: Server) => {
 
                 // Record Vote
                 await Vote.create({ pollId, ipAddress: ip, email });
+                console.log('[SOCKET] Vote successfully recorded');
 
                 // Broadcast update to room
                 io.to(pollId).emit('update_poll', poll);
 
             } catch (error) {
-                console.error('Vote error:', error);
+                console.error('[SOCKET] Vote error:', error);
                 socket.emit('error', { message: 'Internal server error processing vote.' });
             }
         });
